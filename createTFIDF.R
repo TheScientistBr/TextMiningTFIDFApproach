@@ -2,7 +2,7 @@ library(dplyr)
 library(tidytext)
 library(ggplot2)
 library(tm)
-library(data.table)
+library(dtplyr)
 
 classe <-  list.dirs("../aTribunaDev/class/",full.names = FALSE,recursive = FALSE)[1]
 lfile <-  list.files(paste0("../aTribunaDev/class/",classe))[1]
@@ -58,6 +58,11 @@ book_words
 book_words <- book_words %>% bind_tf_idf(word, file, n)
 book_words <- as.data.table(book_words)
 
-setkey(book_words,file,word)
+setkey(book_words,file,word,class)
+
+book_words$class <- substr(book_words$file, 
+                               nchar(as.character(book_words$file))-6,
+                               nchar(as.character(book_words$file))-4)
+
 write.table(book_words,file = "data/aTribunaBook_Words.csv")
 

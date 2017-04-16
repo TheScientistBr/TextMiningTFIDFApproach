@@ -1,6 +1,6 @@
 # Plot Files from other under index directory
 #
-library("data.table")
+library(dplyr)
 library("ggplot2")
 # lfile <- "004062006at2.txt"
 
@@ -71,13 +71,4 @@ plotFile <- function(file1 = file1, file2 = file2, wplot = TRUE, typePlot = "p")
         return(c("ERRO",length(compare)[1]))
 }
 
-plotFileAtractors <- function(lfile = NULL, class2plot = NULL) {
-        source("loadConfig.R")
-        fclassAtractorsPlot <- list.files(paste0(classAtractors,"/",class2plot))
-        #par(mfrow = c(length(fclassAtractorsPlot)/5, 4), 
-        #    mar = c(3, 3, 1, 1), oma = c(0, 0, 2, 0))
-        for(classAtractorsPlot in fclassAtractorsPlot) {
-                classAtractorsPlot <- substr(classAtractorsPlot,1,nchar(classAtractorsPlot)-4)
-                print(plotFile(lfile,classAtractorsPlot))
-        }
-}
+
