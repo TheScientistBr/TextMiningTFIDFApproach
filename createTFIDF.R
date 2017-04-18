@@ -3,7 +3,7 @@ library(tidytext)
 library(ggplot2)
 library(tm)
 library(dtplyr)
-
+'
 classe <-  list.dirs("../aTribunaDev/class/",full.names = FALSE,recursive = FALSE)[1]
 lfile <-  list.files(paste0("../aTribunaDev/class/",classe))[1]
 
@@ -17,6 +17,7 @@ getLemma <- function(text = text) {
                 ntermo <- lemmaWords[nr,1]
                 ifelse(is.na(ntermo),return(text),return(ntermo[[1]]))
 }
+'
 
 myDataset <- data.frame(stringsAsFactors = FALSE)
 nRead <- Inf     # number files to read by class
