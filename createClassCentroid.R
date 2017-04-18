@@ -1,7 +1,7 @@
 # Plot Class from tree PSA
 #
 # variable for test into function
-# classe <- "at2"
+# classe <- "bro"
 # myClass <- "./class"
 # lfile <- "004062006at2.txt.idx"
 # kfold <- 1
