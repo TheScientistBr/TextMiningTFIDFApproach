@@ -1,123 +1,13 @@
 # Classify file into a class structure from centroid
 # The classification use correlation with file and any available centroids
 #
-printf <- function(...) invisible(print(sprintf(...)))
 
-showCorrelation <- function(class = FALSE, maxFile = 6, corte = Inf) {
-        source("loadConfig.R")
-        files<-as.data.frame(x = list.files(paste0(myClass)))
-        if(class == FALSE) {
-                names(files)<-"Choose one Class"
-                return(files)
-        }
-        if(is.numeric(class)) {
-                classe<-as.character(files[[1]])[class]
-        }
-        print(as.data.frame(classe))
-        if(file.exists(paste0("correlation/",classe,".cor")))
-                corData <- read.csv(paste0("./correlation/",classe,".cor"), nrows = maxFile)
-        else
-                print(paste0("File ","correlation/",classe,".cor"," not found"))
-        print(corData)
-}
+library(dplyr)
 
 
-createCorrelation <- function(class = FALSE, clean = FALSE, max = Inf) {
-        source("loadConfig.R")
-        files<-as.data.frame(x = list.files(paste0(myClass)))
-        if(class == FALSE) {
-                names(files)<-"Choose one Class"
-                return(files)
-        }
-        if(is.numeric(class)) {
-                classe<-as.character(files[[1]])[class]
-        }
-        if(clean == TRUE) {
-                if(!dir.exists("./correlation"))
-                        dir.create("./correlation")
-                unlink("./correlation/*")
-        }
-        print(as.data.frame(classe))
-        ni <- read.csv(paste0(statistic,"/",classe,".trn"),stringsAsFactors = FALSE)
-        ni$tfidf <- 0
-        ni <- ni[order(ni$mean,decreasing = FALSE),]
-        ni$i <- 1:length(ni$term)
-        result<-data.frame(stringsAsFactors = FALSE, Filename = NULL,
-                           Correlation = NULL)
-        nibkp<-ni
-        soma<-0
-        cor7<-0
-        for(lfile in list.files(paste0(myClass,"/",classe))) {
-                soma=soma+1
-                if(soma > max)
-                        break
-                doc  <- read.csv(paste0(index,"/",lfile,".idx"),stringsAsFactors = FALSE, header = FALSE,
-                                 col.names = c("term","tfidf"),sep = ";", encoding = "UTF-8")
-                if(file.info(paste0(index,"/",lfile,".idx"))$size == 1) {
-                        printf("%5s - %15s empty", soma,lfile)
-                        next
-                }
-                if(length(doc$term)[1] < 10) {
-                        printf("%5s - %15s length < 10", soma,lfile)
-                        next
-                }
-                ni<-nibkp
-                for(i  in 1:length(doc$term)[1]) {
-                        ind <- which(ni$term == doc$term[i])
-                        if(length(ni$term[ind])[1] > 0) {
-                                ni$tfidf[ind] <- doc$tfidf[i]
-                                }
-                }
-                ni <- subset(ni, tfidf > 0)
-                ni <- ni[order(ni$mean,decreasing = FALSE),]
-                ni$i <- 1:length(ni$term)
-                model1 <- lm(ni$mean ~ ni$i + I(ni$i^2))
-                model2 <- lm(ni$tfidf ~ ni$i + I(ni$i^2))
-                corr <- abs(cor(predict(model1),predict(model2)))
-                if(corr<.7) {
-                        cor7=cor7+1
-                }
-                printf("%5s - %15s %2.5f %2.5f", soma,lfile,corr,(cor7*100)/soma)
-                result <- rbind(result,data.frame(Filename = lfile,
-                                                  Correlation = corr))
-        }
-write.csv(result,paste0("./correlation/",classe,".cor"))
-}
-
-featureCount <- function(class = FALSE) {
-        source("loadConfig.R")
-        files<-as.data.frame(x = list.files(paste0(myClass)))
-        if(class == FALSE) {
-                names(files)<-"Choose one Class"
-                return(files)
-        }
-        if(is.numeric(class)) {
-                classe<-as.character(files[[1]])[class]
-        }
-        print(as.data.frame(classe))
-        val <- 0
-        tam <- length(list.files(paste0(myClass,"/",classe)))[1]
-        for(lfile in list.files(paste0(myClass,"/",classe))) {
-                doc  <- read.csv(paste0(index,"/",lfile,".idx"),
-                                 stringsAsFactors = FALSE, header = FALSE,
-                                 col.names = c("term","tfidf"),
-                                 sep = ";", encoding = "UTF-8")
-                val <- val + length(doc$term)[1]
-                }
-        return(val/tam)
-}
-
-loadTestFile <- function(class = class) {
-        if(file.exists(paste0("./files2test/",class,".tst"))) {
-                file2test <<- read.csv(paste0("./files2test/",class,".tst"), 
-                                       stringsAsFactors = FALSE)
-                }
-}
-
-loadCentroid <- function(class = class) {
-        if(file.exists(paste0("./statistic/",class,".trn"))) {
-                centroid <<- read.csv(paste0("./statistic/",class,".trn"))
-        }
+if(!exists("book_words")) {
+        book_words <- read.table(file = "data/aTribunaBook_Words.csv",
+                                 stringsAsFactors = FALSE)
 }
 
 showResults <- function(classe = FALSE, print = FALSE) {
@@ -155,41 +45,6 @@ showResults <- function(classe = FALSE, print = FALSE) {
 }
 
 
-testfuncion <- function() {
-        i<-1
-        niFiles<-"at2.trn"
-        lfile<-"./index/004062006at2.txt.idx"
-        source("loadConfig.R")
-        old_pvalue<-9999
-        rho  <- 0
-        doc3 <- "none"
-        corte <- 0
-        ni   <- read.csv(paste0(statistic,"/",niFiles))
-        doc  <- read.csv(lfile,stringsAsFactors = FALSE, header = FALSE,
-                         col.names = c("term","tfidf"),sep = ";", encoding = "UTF-8")
-        doc$mean <- 0
-        doc$i <- 0
-        for( i  in 1:length(doc$term)[1]) {
-                iTerm <- which(doc$term[i] == ni$term)
-                if(length(iTerm) != 0) {
-                        doc$mean[i] <- ni$mean[iTerm]
-                        doc$i[i] <- ni$i[iTerm]
-                        doc$i[i] <- ni$i[iTerm]
-                }
-        }
-        doc2 <- subset(doc)
-        corM <- summary(lm(doc2$tfidf ~ doc2$mean))$coef[7]
-        x <- lm(doc2$tfidf ~ doc2$mean)
-        pvalue <- x$coefficients[1]
-}
-
-seeDiference <- function(x) {
-        w<-0
-        for(i in length(x$term)) {
-                w <- w + abs(x$tfidf[[i]]-x$mean[[i]])
-        }
-        return(w/i)
-}
 
 # iCLassFileAll compute sucess and fails in iClassFile classification under that rules
 #
@@ -256,35 +111,35 @@ iCLassFileAll <- function(class = FALSE, iniFile = 0, maxFiles = 9999999, clean 
 
 iClassFile <- function(lfile = lfile, wplot = FALSE) {
         source("loadConfig.R")
+        source("functions.R")
         doc3 <- "none"
-        rho  <- -999999
+        rho  <- -Inf
         rhoClass <- "none"
-        lClasses <- list.files(statistic)
+        lClasses <- read.csv(myClass,stringsAsFactors = FALSE, header = TRUE)
         response <- data.frame(lClasses)
         response$cor <- 0
         doc  <- subset(book_words,file == lfile)
 
-        if(length(doc$term)[1] < 10)
+        if(length(doc$word)[1] < 10)
                 return(list(response,c(rhoClass,rho)))
-        for(niFiles in list.files(statistic)) {
-                ni <- read.csv(paste0(statistic,"/",niFiles),stringsAsFactors = FALSE)
+        for(niFiles in list.files("data/",pattern = "centroid.*")) {
+                niFiles <- substr(niFiles,nchar(niFiles)-2,nchar(niFiles))
+                ni <- readCentroid(niFiles) 
                 ni$tfidf <- 0
-                soma<-0
-                total<-length(ni$term)[1]
-                for(i  in 1:length(doc$term)[1]) {
-                        ind <- which(ni$term == doc$term[i])
-                        if(length(ni$term[ind])[1] > 0) {
-                                ni$tfidf[ind] <- doc$tfidf[i]
-                                }
+                for(i  in 1:length(doc$word)[1]) {
+                        ind <- which(ni$word == doc[i,]$word)
+                        if(length(ind)) 
+                                ni[ind,]$tfidf <- doc[i,]$tf_idf
                 }
                 ni <- subset(ni, tfidf > 0)
+                ni <- subset(ni, mean > 0)
                 ni <- ni[order(ni$mean,decreasing = FALSE),]
-                ni$i <- 1:length(ni$term)
-                #ni <- subset(ni, mean > 0)
+                ni$i <- 1:length(ni$word)
                 model1 <- lm(ni$mean ~ ni$i + I(ni$i^2))
                 model2 <- lm(ni$tfidf ~ ni$i + I(ni$i^2))
                 corr <- abs(cor(predict(model1),predict(model2)))
-                response$cor[which(response$lClasses == niFiles)] <- corr
+                #corr <- summary(model)$coefficients[,4][3]
+                response$cor[which(response$class == niFiles)] <- corr
                 if(corr > rho) {
                         rho <- corr
                         rhoClass <- niFiles
@@ -297,13 +152,13 @@ iClassFile <- function(lfile = lfile, wplot = FALSE) {
                        maxylim <- max(doc3$tfidf), maxylim <- max(doc3$mean))
                 maxylim<-as.numeric(maxylim)
                 plot(doc3$i, doc3$mean, col = "blue", 
-                     type = "p", main = rhoClass,
+                     main = rhoClass,
                      xlim = c(0,max(doc3$i)), ylim = c(0,maxylim+5),
                      xlab = "Terms", ylab = "TF-IDF/Mean")
                 lines(doc3$i, predict(lm(doc3$mean ~ doc3$i + I(doc3$i^2))), col = c("blue"))
                 par(new=T)
                 plot(doc3$i, doc3$tfidf, col = "red", 
-                     pch = 16, xlim = c(0,max(doc3$i)), ylim = c(0,maxylim+5),
+                     xlim = c(0,max(doc3$i)), ylim = c(0,maxylim+5),
                      xlab = "Terms", ylab = "TF-IDF/Mean")
                 lines(doc3$i, predict(lm(doc3$tfidf ~ doc3$i + I(doc3$i^2))), col = c("red"))
         }
