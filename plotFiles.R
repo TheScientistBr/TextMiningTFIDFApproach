@@ -4,7 +4,10 @@ library(dplyr)
 library("ggplot2")
 # lfile <- "004062006at2.txt"
 
-book_words <- read.table(file = "data/aTribunaBook_Words.csv")
+if(!exists("book_words")) {
+        book_words <- read.table(file = "data/aTribunaBook_Words.csv",
+                                 stringsAsFactors = FALSE)
+        }
 
 plotWords <- function(lfile, corte = 0) {
         doc <- subset(book_words,file == lfile)
@@ -25,30 +28,30 @@ plotWords <- function(lfile, corte = 0) {
 # file2 <- "05092005at2.txt"
 # file1 <- "004062006at2.txt"
 
-plotFile <- function(file1 = file1, file2 = file2, wplot = TRUE, typePlot = "p") {
-        corM <- 0
+source("functions.R")
+
+plotFile <- function(file1 = file1, file2 = NULL, wplot = TRUE, 
+                      classCentroid = NULL) {
+        source("loadConfig.R")
         doc1  <- subset(book_words,file == file1)
-        doc2  <- subset(book_words,file == file2)
-        centroid <- c(doc1$word,doc2$word)
-        centroid <- unique(sort(centroid))
-        ni <- data.frame(word = centroid, stringsAsFactors = FALSE)
+        if(!is.null(classCentroid)) 
+                ni <- readCentroid(classCentroid) 
+        if(is.null(classCentroid) && !is.null(file2))
+                ni <- subset(book_words,file == file2)
+        corM <- 0
         ni$tfidf <- 0
-        ni$mean <- 0
         ni$i <- 0
         if(wplot) {
                 soma <- 0
                 for(i  in 1:length(doc1$word)[1]) {
                         ind <- which(ni$word == doc1[i,]$word)
-                        ni[ind,]$tfidf <- doc1[i,]$tf_idf
+                        if(length(ind)) 
+                                ni[ind,]$tfidf <- doc1[i,]$tf_idf
                         }
-                for(i  in 1:length(doc2$word)[1]) {
-                        ind <- which(ni$word == doc2[i,]$word)
-                        ni[ind,]$mean <- doc2[i,]$tf_idf
-                }
                 ni <- subset(ni, tfidf > 0)
                 ni <- subset(ni, mean > 0)
-                if(length(ni$term) < 10) {
-                        return(paste0("File ",index,"/",file2,".idx has less than 10 characters"))
+                if(length(ni$word) < 10) {
+                        return(paste0("File ",file2,"has less than 10 characters"))
                 }
                 ni <- ni[order(ni$mean,decreasing = FALSE),]
                 ni$i <- 1:length(ni$word)
