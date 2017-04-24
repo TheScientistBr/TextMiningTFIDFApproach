@@ -10,26 +10,26 @@ if(!exists("book_words")) {
                                  stringsAsFactors = FALSE)
 }
 
-showResults <- function(classe = FALSE, print = FALSE) {
-        files<-as.data.frame(x = list.files("./class"))
-        if(classe == FALSE) {
-                names(files)<-"Choose one Class"
-                return(files)
-                }
-        if(is.numeric(classe)) {
-                classe<-as.character(files[[1]])[classe]
-                }
-        print(as.data.frame(classe))
-        results <- lapply(list.files(paste0("./results/",classe,"/"),full.names = TRUE), 
+showResults <- function(iclass = FALSE, print = FALSE) {
+        classes <- read.csv("data/class.txt",stringsAsFactors = FALSE)
+        if(iclass == FALSE) {
+                names(classes)<-"Choose one Class"
+                return(classes)
+        }
+        if(is.numeric(iclass)) {
+                iclass <- classes[iclass,]
+        }
+        print(as.data.frame(iclass))
+        results <- lapply(list.files(paste0("./results/",iclass,"/"),full.names = TRUE), 
                           FUN = function(lfile) {                
                                   return(read.csv(lfile))
                         })
-        if(!file.exists(paste0("./results/",classe)))
-                return(sprintf("File %s not found",paste0("./results/",classe)))
-        lFiles <- list.files(paste0("./results/",classe))
+        if(!file.exists(paste0("./results/",iclass)))
+                return(sprintf("File %s not found",paste0("./results/",iclass)))
+        lFiles <- list.files(paste0("./results/",iclass))
         impressao <- data.frame(stringsAsFactors = FALSE)
         for(i in 1:length(results)[1]) {
-                topClass <- as.character(head(results[[i]][order(results[[i]]$cor,decreasing = TRUE),],1)$lClasses)
+                topClass <- as.character(head(results[[i]][order(results[[i]]$cor,decreasing = TRUE),],1)$class)
                 maxCal <- head(results[[i]][order(results[[i]]$cor,decreasing = TRUE),],1)$cor
                 impressao <- rbind(impressao, cbind(topClass,maxCal, lFiles[i]))
         }
@@ -37,8 +37,8 @@ showResults <- function(classe = FALSE, print = FALSE) {
         if(print == TRUE) {
                 print(impressao)
                 }
-        if(classe != FALSE) {
-                a<-length(which(impressao$TopClass == paste0(classe,".trn")))
+        if(iclass != FALSE) {
+                a<-length(which(impressao$TopClass == iclass))
                 b<-length(impressao$TopClass)
                 sprintf("F1: %d/%d %2.5f",a,b,((a*100)/b))
         }
@@ -48,55 +48,59 @@ showResults <- function(classe = FALSE, print = FALSE) {
 
 # iCLassFileAll compute sucess and fails in iClassFile classification under that rules
 #
-iCLassFileAll <- function(class = FALSE, iniFile = 0, maxFiles = 9999999, clean = TRUE) {
-        files<-as.data.frame(x = list.files("./class"))
-        if(class == FALSE) {
-                names(files)<-"Choose one Class"
-                return(files)
+iCLassFileAll <- function(iclass = FALSE, iniFile = 0, maxFiles = 9999999, clean = TRUE) {
+        source("functions.R")
+        classes <- read.csv("data/class.txt",stringsAsFactors = FALSE)
+        if(iclass == FALSE) {
+                names(classes)<-"Choose one Class"
+                return(classes)
         }
-        if(is.numeric(class)) {
-                class<-as.character(files[[1]])[class]
+        if(is.numeric(iclass)) {
+                iclass <- classes[iclass,]
         }
-        print(as.data.frame(class))
+        print(as.data.frame(iclass))
         
         if(!dir.exists("./results"))
                 dir.create("./results")
         if(clean == TRUE) {
-                if(!dir.exists(paste0("./results/",class)))
-                        dir.create(paste0("./results/",class))
-                unlink(paste0("./results/",class,"/*"))
-                }
-        file2test <- read.csv(paste0("./files2test/",class,".tst"), stringsAsFactors=FALSE)
+                if(!dir.exists(paste0("./results/",iclass)))
+                        dir.create(paste0("./results/",iclass))
+                unlink(paste0("./results/",iclass,"/*"))
+        }
+        centroid <- readCentroid(iclass)
+        files2test <- read.csv(file = paste0("data/files2test.",iclass), 
+                               stringsAsFactors = FALSE,col.names = c("file"))
+        subClass <- subset(book_words, class == iclass)
+        
         sucess <- 0
         fail <- 0
-        i<-1
+        i<-0
         results <- data.frame()
-        pb <- winProgressBar(title=sprintf("Classification process to %s",class), 
+        pb <- winProgressBar(title=sprintf("Classification process to %s",iclass), 
                              label="Initiating ...", min=0, max=100, initial=0)
-        if(maxFiles>dim(file2test)[1])
-                maxFiles<-dim(file2test)[1]
+        if(maxFiles>dim(files2test)[1])
+                maxFiles<-dim(files2test)[1]
         total = maxFiles
         Subjects <- maxFiles
         class_resp<-"???"
-        for(lfile in as.character(file2test$V1)) {
+        for(lfile in files2test$file) {
                 info <- sprintf("%2.1f%% %d/%d %s %s", round(((i*100)/total),digits = 1),
-                                i,total,as.character(lfile),class_resp)
+                                i,total,lfile,class_resp)
                 setWinProgressBar(pb, ((i*100)/total), label=info)
-                response <- iClassFile(paste0(index,"/",as.character(lfile),".idx"))
-                if(response[[1]]$lClasses[1] == "ERRO")
+                response <- iClassFile(lfile)
+                if(response[[1]]$class[1] == "ERRO")
                         next
-                class_resp <- substr(response[[2]][[1]],start = 1,
-                                     stop = nchar(response[[2]][1])-4)
-                if(class_resp == class) {
+                class_resp <- response[[2]][[1]]
+                if(class_resp == iclass) {
                         sucess = sucess +1
                 }
-                if(! dir.exists(paste0("./results/",class)))
-                        dir.create(paste0("./results/",class))
+                if(! dir.exists(paste0("./results/",iclass)))
+                        dir.create(paste0("./results/",iclass))
                 write.csv(response[[1]],
-                          file = paste0("./results/",class,"/",as.character(lfile)))
+                          file = paste0("./results/",iclass,"/",lfile))
                 i = i + 1
                 info <- sprintf("%2.1f%% %d/%d %s %s", round(((i*100)/total),digits = 1),
-                                i,total,as.character(lfile),class_resp)
+                                i,total,lfile,class_resp)
                 setWinProgressBar(pb, ((i*100)/total), label=info)
                 if(i>=maxFiles+iniFile) {
                         fail = Subjects - sucess
@@ -126,19 +130,25 @@ iClassFile <- function(lfile = lfile, wplot = FALSE) {
                 niFiles <- substr(niFiles,nchar(niFiles)-2,nchar(niFiles))
                 ni <- readCentroid(niFiles) 
                 ni$tfidf <- 0
+                mySum <- 0
                 for(i  in 1:length(doc$word)[1]) {
                         ind <- which(ni$word == doc[i,]$word)
-                        if(length(ind)) 
+                        if(length(ind)) {
                                 ni[ind,]$tfidf <- doc[i,]$tf_idf
+                        }
                 }
                 ni <- subset(ni, tfidf > 0)
                 ni <- subset(ni, mean > 0)
-                ni <- ni[order(ni$mean,decreasing = FALSE),]
                 ni$i <- 1:length(ni$word)
-                model1 <- lm(ni$mean ~ ni$i + I(ni$i^2))
-                model2 <- lm(ni$tfidf ~ ni$i + I(ni$i^2))
-                corr <- abs(cor(predict(model1),predict(model2)))
-                #corr <- summary(model)$coefficients[,4][3]
+                corr <- 0
+                if(length(ni$word) > 3) {
+                        ni <- ni[order(ni$mean,decreasing = FALSE),]
+                        corr <- sum(ni$i)
+                }
+                #model1 <- lm(ni$mean ~ ni$i + I(ni$i^2))
+                #xmodel2 <- lm(ni$tfidf ~ ni$i + I(ni$i^2))
+                #fit <- abs(cor(predict(model1),predict(model2)))
+                #corr <- corr * fit
                 response$cor[which(response$class == niFiles)] <- corr
                 if(corr > rho) {
                         rho <- corr
