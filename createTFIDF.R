@@ -10,14 +10,14 @@ lfile <-  list.files(paste0("../aTribunaDev/class/",classe))[1]
 lemmaWords <- read.table("data/lematizer.txt",strip.white = TRUE, sep = ";", quote = "",
                          stringsAsFactors = FALSE, header = FALSE, encoding = "UTF-8")
 colnames(lemmaWords) <- c("lemma","words")
-
+'
 getLemma <- function(text = text) {
                 ntermo <- character()
                 nr     <- grep(text,lemmaWords)[1]
                 ntermo <- lemmaWords[nr,1]
                 ifelse(is.na(ntermo),return(text),return(ntermo[[1]]))
 }
-'
+
 
 myDataset <- data.frame(stringsAsFactors = FALSE)
 nRead <- Inf     # number files to read by class
