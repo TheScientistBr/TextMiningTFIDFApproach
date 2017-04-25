@@ -24,9 +24,16 @@ showResults <- function(iclass = FALSE, print = FALSE) {
                           FUN = function(lfile) {                
                                   return(read.csv(lfile))
                         })
-        if(!file.exists(paste0("./results/",iclass)))
-                return(sprintf("File %s not found",paste0("./results/",iclass)))
-        lFiles <- list.files(paste0("./results/",iclass))
+        if(iclass != "con") {
+                if(!file.exists(paste0("./results/",iclass)))
+                        return(sprintf("File %s not found",paste0("./results/",iclass)))
+                lFiles <- list.files(paste0("./results/",iclass))
+        }
+        if(iclass == "con") {
+                if(!file.exists("./results/conn"))
+                        return(sprintf("File not found ./results/conn"))
+                lFiles <- list.files("./results/conn")
+        }
         impressao <- data.frame(stringsAsFactors = FALSE)
         for(i in 1:length(results)[1]) {
                 topClass <- as.character(head(results[[i]][order(results[[i]]$cor,decreasing = TRUE),],1)$class)
@@ -36,7 +43,7 @@ showResults <- function(iclass = FALSE, print = FALSE) {
         names(impressao)<-c("TopClass","Inference","File")
         if(print == TRUE) {
                 print(impressao)
-                }
+        }
         if(iclass != FALSE) {
                 a<-length(which(impressao$TopClass == iclass))
                 b<-length(impressao$TopClass)
@@ -48,7 +55,7 @@ showResults <- function(iclass = FALSE, print = FALSE) {
 
 # iCLassFileAll compute sucess and fails in iClassFile classification under that rules
 #
-iCLassFileAll <- function(iclass = FALSE, iniFile = 0, maxFiles = 9999999, clean = TRUE) {
+iClassFileAll <- function(iclass = FALSE, iniFile = 0, maxFiles = 9999999, clean = TRUE) {
         source("functions.R")
         classes <- read.csv("data/class.txt",stringsAsFactors = FALSE)
         if(iclass == FALSE) {
@@ -63,9 +70,16 @@ iCLassFileAll <- function(iclass = FALSE, iniFile = 0, maxFiles = 9999999, clean
         if(!dir.exists("./results"))
                 dir.create("./results")
         if(clean == TRUE) {
-                if(!dir.exists(paste0("./results/",iclass)))
-                        dir.create(paste0("./results/",iclass))
-                unlink(paste0("./results/",iclass,"/*"))
+                if(iclass == "con") {
+                        if(!dir.exists("./results/conn"))
+                                dir.create("./results/conn")
+                        unlink("./results/conn/*")
+                }
+                if(iclass != "con") {
+                        if(!dir.exists(paste0("./results/",iclass)))
+                                dir.create(paste0("./results/",iclass))
+                        unlink(paste0("./results/",iclass,"/*"))
+                }
         }
         centroid <- readCentroid(iclass)
         files2test <- read.csv(file = paste0("data/files2test.",iclass), 
@@ -94,10 +108,18 @@ iCLassFileAll <- function(iclass = FALSE, iniFile = 0, maxFiles = 9999999, clean
                 if(class_resp == iclass) {
                         sucess = sucess +1
                 }
-                if(! dir.exists(paste0("./results/",iclass)))
-                        dir.create(paste0("./results/",iclass))
-                write.csv(response[[1]],
-                          file = paste0("./results/",iclass,"/",lfile))
+                if(iclass != "con") {
+                        if(! dir.exists(paste0("./results/",iclass)))
+                                dir.create(paste0("./results/",iclass))
+                        write.csv(response[[1]],
+                                  file = paste0("./results/",iclass,"/",lfile))
+                }
+                if(iclass == "con") {
+                        if(! dir.exists("./results/conn"))
+                                dir.create("./results/conn")
+                        write.csv(response[[1]],
+                                  file = paste0("./results/conn","/",lfile))
+                }
                 i = i + 1
                 info <- sprintf("%2.1f%% %d/%d %s %s", round(((i*100)/total),digits = 1),
                                 i,total,lfile,class_resp)
